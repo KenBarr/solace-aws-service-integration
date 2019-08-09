@@ -103,12 +103,7 @@ The solution is deployed via Cloud Formation templates.   It can either deploy t
 If you plan on integrating yourself, you will need to take care of loading root certificates and configuring TLS on the message broker to interact with the APIgateway as well as configure the message broker rest delivery endpoints,(RDPs).  See the scripts/setup-rdp.sh file for inspiration on that needs to be done in this regard.  The script itself is a mix of Solace SEMPv1 and SEMPv2.  Also, you will need to add your subnets to the VPC endpoint and add the created security groups to your message broker.
 
 Deploying APIGateway components only                      .
-<a href="https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=Solace-ApiGW&templateURL=https://s3.amazonaws.com/solace-labs/solace-aws-service-integration/latest/templates/api_proxy.template" target="_blank">
-    <img src="/images/launch-button-existing.png"/>
-</a>
-
-Deploying complete solution including Solace message router.
-<a href="https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=Solace-ApiGW&templateURL=https://s3.amazonaws.com/solace-labs/solace-aws-service-integration/latest/templates/api_proxy_and_vmr.template" target="_blank">
+<a href="https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=Solace-ApiGW&templateURL=https://s3.amazonaws.com/solace-labs/solace-aws-service-integration/public/templates/api_proxy.template" target="_blank">
     <img src="/images/launch-button-existing.png"/>
 </a>
 
