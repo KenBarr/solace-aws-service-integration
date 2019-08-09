@@ -4,8 +4,7 @@
     "Parameters": {
       "stackName": {"Type": "String"},
       "resourceARN" : {"Type": "String"},
-      "actions" : {"Type": "String"},
-      "vpcId" : {"Type": "String"}
+      "actions" : {"Type": "String"}
     },
     "Mappings": {},
     "Conditions": {},

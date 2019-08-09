@@ -3,9 +3,8 @@
   "Description": "CloudFormation template to deploy Solace HA Message Routers on AWS",
   "Parameters": {
 		"Title": {"Type": "String"},
-    "ResourceURL": {"Type": "String"},
+    	"ResourceURL": {"Type": "String"},
 		"RoleARN" : {"Type": "String"},
-		"vpcId": {"Type": "String"},
 		"OctelStreamTemplate": {"Type": "String"},
 		"JSONTemplate": {"Type": "String"},
 		"DeleteTemplate" : {"Type": "String"}
@@ -18,8 +17,8 @@
 			"Properties" : {  
 			  "Name" : {"Fn::Join": ["-", [{"Ref": "AWS::StackName"}, "gateway"]]},
 			  "Description" : "Proxy for created resource",   
-				"FailOnWarnings" : true,
-				"EndpointConfiguration" : { "Types": ["PRIVATE"] },
+			  "FailOnWarnings" : true,
+			  "EndpointConfiguration" : { "Types": ["REGIONAL"] },
 			  "Body" : {
 				"swagger": "2.0",
 				"info": {
@@ -216,12 +215,8 @@
 									{ "Fn::Select" : [ "4", { "Fn::Split": [":", {"Ref" : "RoleARN"}]}] }, 
 									"*/*"
 								]
-							]},
-							"Condition": {
-								"StringEquals": {
-									"aws:sourceVpc": {"Ref" : "vpcId"}
-								}
-							}
+							]}
+
 						}
 					]
 				}

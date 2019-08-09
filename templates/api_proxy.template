@@ -17,8 +17,6 @@
 						"default": "AWS Quick Start Configuration"
 					},
 					"Parameters": [
-						"VPCID",
-						"SubnetIDs",
 						"QSS3BucketName",
 						"QSS3KeyPrefix"
 					]
@@ -31,12 +29,6 @@
 				"ResourceARN": {
 					"default": "The ARN of the resource"
 				},
-				"SubnetIDs": {
-                    "default": "Subnets to allow access to API Gateway"
-                },
-                "VPCID": {
-                    "default": "VPC ID to access API Gateway"
-                },
 				"QSS3BucketName": {
 					"default": "Quick Start S3 Bucket Name"
 				},
@@ -64,14 +56,6 @@
 			"ConstraintDescription": "The ARN of the resource",
 			"Type": "String"
 		},
-		"SubnetIDs": {
-            "Description": "Comma separated list of VPC subnet IDs to access API Gateway (e.g. subnet-4b8d329f,subnet-bd73afc8); VPC must exist with proper configuration for Solace cluster access",
-            "Type": "List<AWS::EC2::Subnet::Id>"
-        },
-		"VPCID": {
-            "Description": "ID of the VPC (e.g. vpc-0343606e)",
-            "Type": "AWS::EC2::VPC::Id"
-        },
 		"QSS3BucketName": {
 			"AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
 			"ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
@@ -82,7 +66,7 @@
 		"QSS3KeyPrefix": {
 			"AllowedPattern": "^[0-9a-zA-Z-/]*$",
 			"ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
-			"Default": "solace-aws-service-integration/latest",
+			"Default": "solace-aws-service-integration/public",
 			"Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
 			"Type": "String"
 		}
@@ -120,32 +104,6 @@
 		"SQSServiceCondition":     {"Fn::Equals": [{"Ref": "ResourceType"},"SQS"]}
 	},
 	"Resources": {
-		"SecurityGroupStack": {
-			"Type": "AWS::CloudFormation::Stack",
-			"Properties": {
-				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Security/proxy_securityGroup.template"},
-				"Parameters": {
-					"vpcId": { "Ref" :"VPCID" }
-				}				
-			}
-		},
-		"EndPointStack": {
-			"Type": "AWS::CloudFormation::Stack",
-			"DependsOn": ["SecurityGroupStack"],
-			"Properties": {
-				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Security/proxy_endpoint.template"},
-				"Parameters": {
-					"vpcId": { "Ref" :"VPCID" },
-					"subnets": {"Fn::Join": ["," , {"Ref": "SubnetIDs"}]},
-					"securityGroups": {"Fn::Join": ["," , 
-						[
-							{"Fn::GetAtt": ["SecurityGroupStack","Outputs.SecurityGroupMember"]},
-							{"Fn::GetAtt": ["SecurityGroupStack","Outputs.SecurityGroup"]}
-						]
-					]} 	
-				}				
-			}
-		},
 		"RoleStack": {
 			"Type": "AWS::CloudFormation::Stack",
 			"Properties": {
@@ -158,33 +116,30 @@
 							{"Ref": "ResourceARN"}
 						]
 					},
-					"actions" : {"Fn::FindInMap": ["ResourceMap", {"Ref": "ResourceType"}, "PolicyActions"]},
-					"vpcId": { "Ref" :"VPCID" }
+					"actions" : {"Fn::FindInMap": ["ResourceMap", {"Ref": "ResourceType"}, "PolicyActions"]}
 				}
 			}
 		},
 		"KinesisStack": {
 			"Type": "AWS::CloudFormation::Stack",
 			"Condition": "KinesisServiceCondition",
-			"DependsOn": ["RoleStack", "EndPointStack"],
+			"DependsOn": ["RoleStack"],
 			"Properties": {
 				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Services/kinesis_proxy.template"},
 				"Parameters": {
-					"RoleARN" : {"Fn::GetAtt": ["RoleStack","Outputs.ARN"]},
-					"vpcId": { "Ref" :"VPCID" }
+					"RoleARN" : {"Fn::GetAtt": ["RoleStack","Outputs.ARN"]}
 				}
 			}
 		},
 		"LambdaStack": {
 			"Type": "AWS::CloudFormation::Stack",
 			"Condition": "LambdaServiceCondition",
-			"DependsOn": ["RoleStack", "EndPointStack"],
+			"DependsOn": ["RoleStack"],
 			"Properties": {
 				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Services/resource_proxy.template"},
 				"Parameters": {
 					"Title": {"Fn::FindInMap": ["ResourceMap", {"Ref": "ResourceType"}, "Title"]},
 					"RoleARN" : {"Fn::GetAtt": ["RoleStack","Outputs.ARN"]},
-					"vpcId": { "Ref" :"VPCID" },
 					"ResourceURL" : {"Fn::Join": [ "", ["arn:aws:apigateway:",
 						{ "Fn::Select" : [ "3", { "Fn::Split": [":", {"Ref" : "ResourceARN"}]}]},
 						":lambda:path/2015-03-31/functions/arn:aws:lambda:",
@@ -203,12 +158,11 @@
 		"S3Stack": {
 			"Type": "AWS::CloudFormation::Stack",
 			"Condition": "S3ServiceCondition",
-			"DependsOn": ["RoleStack", "EndPointStack"],
+			"DependsOn": ["RoleStack"],
 			"Properties": {
 				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Services/s3_proxy.template"},
 				"Parameters": {
 					"RoleARN" : {"Fn::GetAtt": ["RoleStack","Outputs.ARN"]},
-					"vpcId": { "Ref" :"VPCID" },
 					"ResourceURL": {"Ref": "ResourceType"}
 				}
 			}
@@ -216,13 +170,12 @@
 		"SNSStack": {
 			"Type": "AWS::CloudFormation::Stack",
 			"Condition": "SNSServiceCondition",
-			"DependsOn": ["RoleStack", "EndPointStack"],
+			"DependsOn": ["RoleStack"],
 			"Properties": {
 				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Services/resource_proxy.template"},
 				"Parameters": {
 					"Title": {"Fn::FindInMap": ["ResourceMap", {"Ref": "ResourceType"}, "Title"]},
 					"RoleARN" : {"Fn::GetAtt": ["RoleStack","Outputs.ARN"]},
-					"vpcId": { "Ref" :"VPCID" },
 					"ResourceURL" : {"Fn::Join": [ "", ["arn:aws:apigateway:",
 						{ "Fn::Select" : [ "3", { "Fn::Split": [":", {"Ref" : "ResourceARN"}]}]},
 						":sns:path/",
@@ -238,13 +191,12 @@
 		"SQSStack": {
 			"Type": "AWS::CloudFormation::Stack",
 			"Condition": "SQSServiceCondition",
-			"DependsOn": ["RoleStack", "EndPointStack"],
+			"DependsOn": ["RoleStack"],
 			"Properties": {
 				"TemplateURL": {"Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}/templates/Services/resource_proxy.template"},
 				"Parameters": {
 					"Title": {"Fn::FindInMap": ["ResourceMap", {"Ref": "ResourceType"}, "Title"]},
 					"RoleARN" : {"Fn::GetAtt": ["RoleStack","Outputs.ARN"]},
-					"vpcId": { "Ref" :"VPCID" },
 					"ResourceURL" : {"Fn::Join": [ "", ["arn:aws:apigateway:",
 						{ "Fn::Select" : [ "3", { "Fn::Split": [":", {"Ref" : "ResourceARN"}]}] },
 						":",
@@ -278,24 +230,6 @@
                     "Fn::Sub": "${AWS::StackName}-APIGateWayID"
                 }
             }			
-		},
-        "SecurityGroupMember": {
-            "Value": {"Fn::GetAtt": ["SecurityGroupStack","Outputs.SecurityGroupMember"]},
-            "Description": "API Gateway Security Group",
-            "Export": {
-                "Name": {
-                    "Fn::Sub": "${AWS::StackName}-SecurityGroupMember"
-                }
-            }
-        },
-        "SecurityGroup": {
-            "Value":{"Fn::GetAtt": ["SecurityGroupStack","Outputs.SecurityGroup"]},
-            "Description": "API Gateway Security Group",
-            "Export": {
-                "Name": {
-                    "Fn::Sub": "${AWS::StackName}-SecurityGroup"
-                }
-            }
-        }
+		}
     }
 }

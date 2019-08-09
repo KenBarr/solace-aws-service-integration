@@ -2,9 +2,6 @@
 	"AWSTemplateFormatVersion": "2010-09-09",
 	"Description": "CloudFormation template to integrate S3 bucket with Solace broker",
 	"Parameters": {
-		"vpcId": {
-			"Type": "String"
-		},
 		"RoleARN": {
 			"Type": "String"
 		},
@@ -21,7 +18,7 @@
 				"Name": {"Fn::Join": ["-",[{"Ref": "AWS::StackName"},"gateway"]]},
 				"Description": "Proxy for created resource",
 				"FailOnWarnings": true,
-				"EndpointConfiguration": {"Types":["PRIVATE"]},
+				"EndpointConfiguration": {"Types":["REGIONAL"]},
 				"Body": {
 					"swagger": "2.0",
 					"info": {
@@ -337,11 +334,6 @@
 											"*/*"
 										]
 									]
-								},
-								"Condition": {
-									"StringEquals": {
-										"aws:sourceVpc": {"Ref": "vpcId"}
-									}
 								}
 							}
 						]
