@@ -59,6 +59,7 @@ verbose=1
 echo "apiGwId=${apiGwId} ,apiStage=${apiStage} ,apiPath=${apiPath} \
       ,admin_username=$admin_username ,awsRegion=${awsRegion} ,Leftovers: $@"
 
+yum -y install jq
 
 echo "`date` INFO: Setting up aws trusted root"
 wget -q -O /var/lib/docker/volumes/jail/_data/certs/AmazonRootCA1.pem -nv https://www.amazontrust.com/repository/AmazonRootCA1.pem
