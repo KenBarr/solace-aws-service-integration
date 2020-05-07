@@ -63,13 +63,13 @@ echo "apiGwId=${apiGwId} ,apiStage=${apiStage} ,apiPath=${apiPath} \
 echo "`date` INFO: Setting up aws trusted root"
 wget -q -O /var/lib/docker/volumes/jail/_data/certs/AmazonRootCA1.pem -nv https://www.amazontrust.com/repository/AmazonRootCA1.pem
 
-online_results=`./semp_query.sh -n ${admin_username} -p ${admin_password} -u https://${vmr}/SEMP \
+online_results=`./semp_query.sh -n ${admin_username} -p ${admin_password} -u http://${vmr}/SEMP \
     -q "<rpc semp-version='soltr/8_9VMR'><authentication><create><certificate-authority><ca-name>aws</ca-name></certificate-authority></create></authentication></rpc>" \
     -v "/rpc-reply/execute-result/@code"`
 ca_created=`echo ${online_results} | jq '.valueSearchResult' -`
 echo "`date` INFO: certificate-authority created status: ${ca_created}"
 
-online_results=`./semp_query.sh -n ${admin_username} -p ${admin_password} -u https://${vmr}/SEMP \
+online_results=`./semp_query.sh -n ${admin_username} -p ${admin_password} -u http://${vmr}/SEMP \
     -q "<rpc semp-version='soltr/8_9VMR'><authentication><certificate-authority><ca-name>aws</ca-name><certificate><ca-certificate>AmazonRootCA1.pem</ca-certificate></certificate></certificate-authority></authentication></rpc>" \
     -v "/rpc-reply/execute-result/@code"`
 ca_loaded=`echo ${online_results} | jq '.valueSearchResult' -`
@@ -80,35 +80,35 @@ curl --user ${admin_username}:${admin_password} \
      --request POST \
      --header "content-type:application/json" \
      --data "{\"queueName\":\"aws_service_${apiPath}_queue\",\"egressEnabled\":true,\"ingressEnabled\":true,\"permission\":\"delete\"}" \
-    "https://${vmr}/SEMP/v2/config/msgVpns/${vpn}/queues"
+    "http://${vmr}/SEMP/v2/config/msgVpns/${vpn}/queues"
 
 curl --user ${admin_username}:${admin_password} \
      --request POST \
      --header "content-type:application/json" \
      --data "{\"msgVpnName\":\"${vpn}\",\"queueName\":\"aws_service_${apiPath}_queue\",\"subscriptionTopic\":\"solace-aws-service-integration/${apiPath}\"}" \
-     "https://${vmr}/SEMP/v2/config/msgVpns/${vpn}/queues/aws_service_${apiPath}_queue/subscriptions" 
+     "http://${vmr}/SEMP/v2/config/msgVpns/${vpn}/queues/aws_service_${apiPath}_queue/subscriptions" 
 
 echo "`date` INFO: Setting up Rest Delivery Endpoint"
 curl --user ${admin_username}:${admin_password} \
      --request PATCH \
      --header "content-type:application/json" \
      --data "{\"msgVpnName\":\"${vpn}\",\"restTlsServerCertEnforceTrustedCommonNameEnabled\":false}" \
-     "https://${vmr}/SEMP/v2/config/msgVpns/${vpn}"
+     "http://${vmr}/SEMP/v2/config/msgVpns/${vpn}"
 
 curl --user ${admin_username}:${admin_password} \
      --request POST \
      --header "content-type:application/json" \
      --data "{\"enabled\":true,\"msgVpnName\":\"${vpn}\",\"restDeliveryPointName\":\"aws_service_rpd\"}" \
-     "https://${vmr}/SEMP/v2/config/msgVpns/${vpn}/restDeliveryPoints"
+     "http://${vmr}/SEMP/v2/config/msgVpns/${vpn}/restDeliveryPoints"
 
 curl --user ${admin_username}:${admin_password} \
      --request POST \
      --header "content-type:application/json" \
      --data "{\"msgVpnName\":\"${vpn}\",\"postRequestTarget\":\"/${apiStage}/${apiPath}\",\"queueBindingName\":\"aws_service_${apiPath}_queue\",\"restDeliveryPointName\":\"aws_service_rpd\"}" \
-     "https://${vmr}/SEMP/v2/config/msgVpns/${vpn}/restDeliveryPoints/aws_service_rpd/queueBindings"
+     "http://${vmr}/SEMP/v2/config/msgVpns/${vpn}/restDeliveryPoints/aws_service_rpd/queueBindings"
 
 curl --user ${admin_username}:${admin_password} \
      --request POST \
      --header "content-type:application/json" \
      --data "{\"enabled\":true,\"msgVpnName\":\"${vpn}\",\"remoteHost\":\"${apiGwId}.execute-api.${awsRegion}.amazonaws.com\",\"remotePort\":443,\"restConsumerName\":\"aws_service_rc\",\"tlsEnabled\":true}" \
-     "https://${vmr}/SEMP/v2/config/msgVpns/${vpn}/restDeliveryPoints/aws_service_rpd/restConsumers"
+     "http://${vmr}/SEMP/v2/config/msgVpns/${vpn}/restDeliveryPoints/aws_service_rpd/restConsumers"
